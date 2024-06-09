@@ -1,24 +1,27 @@
-﻿import json
+﻿import discord
+import json
 import os
 from discord.ext import commands
+from discord.commands import slash_command, Option
 
-class RawMessageDelete(commands.Cog):
+class Report(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_raw_message_delete(self, payload):
-        if not payload.cached_message:
-            print("No cached message found.")
-            return  # In case the message was not cached
-
-        message_content = payload.cached_message.content
-        author = payload.cached_message.author
-        time = payload.cached_message.created_at.strftime("%d/%m/%Y %H:%M:%S")
-        string = f"{author} deleted '{message_content}' at {time}"
+    @slash_command()
+    @discord.default_permissions(administrator=True)
+    async def report(self, ctx, member: Option(discord.Member, name='member', description='Member'), *, reason: Option(str, name='reason', description='Reason')):
+        reporter = ctx.author
+        report_time = discord.utils.utcnow().strftime("%d/%m/%Y %H:%M:%S")
+        report_entry = {
+            "reporter": f"{reporter} (ID: {reporter.id})",
+            "reported_member": f"{member} (ID: {member.id})",
+            "reason": reason,
+            "time": report_time
+        }
 
         # Load existing data
-        file_path = "saves/deleted_messages.json"
+        file_path = "saves/reports.json"
         data = {}
 
         if os.path.exists(file_path):
@@ -34,11 +37,11 @@ class RawMessageDelete(commands.Cog):
         else:
             print("No existing JSON file found, creating new one.")
 
-        # Add the new deleted message information
-        author_id = str(author.id)
-        if author_id not in data:
-            data[author_id] = []
-        data[author_id].append(string)
+        # Add the new report information
+        member_id = str(member.id)
+        if member_id not in data:
+            data[member_id] = []
+        data[member_id].append(report_entry)
 
         # Save the updated data
         try:
@@ -47,5 +50,7 @@ class RawMessageDelete(commands.Cog):
         except IOError as e:
             print(f"Error writing to JSON file: {e}")
 
+        await ctx.respond(f"Report submitted for {member}.")
+
 def setup(bot):
-    bot.add_cog(RawMessageDelete(bot))
+    bot.add_cog(Report(bot))
