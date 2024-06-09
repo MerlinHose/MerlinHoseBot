@@ -8,7 +8,7 @@ class Send(commands.Cog):
         self.bot = bot
 
     @slash_command(description="Send a message to a channel")
-    async def send(ctx, channel: Option(discord.TextChannel, "The channel you want to send the message to"), message: Option(str, "The message you want to send")):
+    async def send(ctx, channel: Option(discord.TextChannel, "Channel"), message: Option(str, "Message")):
         await channel.send(message)
         await ctx.respond(f"Message sent to {channel.mention}", ephemeral=True)
 
